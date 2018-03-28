@@ -5,7 +5,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#define MaxIter 2000000 
+#define MaxIter 200000000
 #define MaxPoint 1002
 using namespace std;
 
@@ -24,7 +24,10 @@ typedef struct Move{
 VerNode *adjList;
 int *sol,*bestSol;
 int adj_color_table[MaxPoint][MaxPoint],tabu_table[MaxPoint][MaxPoint];
-int point_num, edge_num,iter,f,best_f;
+int point_num, edge_num,f,best_f;
+long long iter;
+int res_iter;//用来保存使用最终结果颜色数经历的迭代数 
+double res_time;// 保存时间 
 
 void insert_adjList(int i,int j);//插入邻接表
 void dynamic_alloc();
@@ -36,9 +39,10 @@ int main(int argc,char *argv[])
 {
 	int i,j,k;
 	int right,left,middle,res = 10000;
-	char c,s1[100],s2[100];
+	char c,s1[100],s2[100],file[100];
 	FILE *fp;
-	if ((fp=fopen(".\\instances\\DSJC250.9.col","r"))==NULL) {
+	sprintf(file,".\\instances\\%s",argv[1]);
+	if ((fp=fopen(file,"r"))==NULL) {//从命令行中读取文件名参数 
 		cout << "file not open";
 		return 0;
 	}
@@ -56,32 +60,41 @@ int main(int argc,char *argv[])
 	}
 	left =1;
 	right = point_num;
-	while(left <=right){//将优化问题转化为判定问题，采用二分法进行查找 
-		middle = (left+right)/2;
-	 	cout<<left<<' '<<right<<' '<<middle<<endl;
-		memset(adj_color_table,0,sizeof(adj_color_table));
-	 	memset(tabu_table,0,sizeof(tabu_table));
-	 	f= best_f =0;
-	 	if(tabusearch(middle)==1){
-	 		cout<<middle<<endl;
-	 		if(middle<res){
-	 			res = middle;
-			 }
-			 right = middle-1;
-		 }
-		 else{
-		 	left = middle+1;
-		 }
-	}
-//	for(k=point_num-1;k>=1;k--){
-//	 	memset(adj_color_table,0,sizeof(adj_color_table));
+//	while(left <=right){//将优化问题转化为判定问题，采用二分法进行查找 
+//		middle = (left+right)/2;
+////		middle = 6;
+//	 	cout<<left<<' '<<right<<' '<<middle<<endl;
+//		memset(adj_color_table,0,sizeof(adj_color_table));
 //	 	memset(tabu_table,0,sizeof(tabu_table));
 //	 	f= best_f =0;
-//		if(tabusearch(k) == 0)
-//			break;
-//		cout <<k<<endl;
+//	 	if(tabusearch(middle)==1){
+//	 		cout<<middle<<endl;
+//	 		if(middle<res){
+//	 			res = middle;
+//			 }
+//			 right = middle-1;
+//		 }
+//		 else{
+//		 	left = middle+1;
+//		 }
+//		 cout <<"the end f ="<<f<<'\t'<<best_f<<endl;
 //	}
-	cout <<"the color num is"<<res<<endl;
+//	
+//	cout <<"the color num is"<<res<<endl;
+	for(k=point_num-1;k>=1;k--){
+	 	memset(adj_color_table,0,sizeof(adj_color_table));
+	 	memset(tabu_table,0,sizeof(tabu_table));
+	 	f= best_f =0;
+		if(tabusearch(k) == 0)
+			break;
+		//cout <<k<<endl;
+	}
+	cout <<"the color num is"<<k+1<<endl;
+	
+	fp = fopen(".\\result.txt","a+");
+	if(fp == NULL)
+		printf("output file open error\n");
+	fprintf(fp,"%s %-9d %-12d %lf\n",argv[1],k+1,res_iter,res_time);
     return 0;
 }
 
@@ -104,11 +117,13 @@ void dynamic_alloc(){//动态存储分配内存
 
 }
 int tabusearch(int k){
-	int i;
+	int i,j;
 	srand((unsigned)time(NULL));
 	for(i=1;i<=point_num;i++){
 		sol[i] = rand()%k+1;
+		//cout << sol[i] <<' ';
 	}
+	//cout <<endl;
 	for(i=1;i<=point_num;i++){
 		ArcNode *temp =adjList[i].first;
 		while(temp){//遍历i节点相邻的节点，如果颜色相同的话则将冲突数加1，最后再除以二
@@ -120,8 +135,10 @@ int tabusearch(int k){
 		}
 	}
 	f = f/2;
+	//cout <<"initial_f = "<<f<<endl;
 	best_f = f;
 	iter=0;
+	clock_t start = clock();
 	while(iter < MaxIter){
 		if(f == 0)
             break;
@@ -129,8 +146,12 @@ int tabusearch(int k){
         MakeMove(mymove.u,mymove.vi,mymove.vj);
         iter++;
 	}
+	clock_t ends = clock();
 	if(iter == MaxIter)
         return 0;
+    
+    res_iter = iter;
+	res_time = (double)(ends - start)/ CLOCKS_PER_SEC; 
     return 1;
 }
 
@@ -143,59 +164,65 @@ Move FindMove(int k){
     for(i=1;i<=point_num;i++){
         if(adj_color_table[i][sol[i]]>0){
             for(j=1;j<=k;j++){
-                int temp_delt = adj_color_table[i][j] -adj_color_table[i][sol[i]];
-                if(iter < tabu_table[i][j]){//满足这个条件，j这种颜色处于禁忌当中
-                    if(temp_delt < tabu_move.delt){
-                        tabu_move.delt = temp_delt;
-                        tabu_move.u = i;
-                        tabu_move.vi = sol[i];
-                        tabu_move.vj = j;
-                        tabu_cnt =1 ;
-                    }
-                    else if(temp_delt == tabu_move.delt){
-                    	tabu_cnt++;
-                    	double t = 1.0/tabu_cnt;
-                    	
-                    	if((rand()/(RAND_MAX+1.0)) < t){//产生0-1的随机数，如果比t小 
-                    		tabu_move.u = i;
+            	if(j !=sol[i]){
+            		int temp_delt = adj_color_table[i][j] -adj_color_table[i][sol[i]];
+	                //cout <<temp_delt<<'\t';
+	                if(iter < tabu_table[i][j]){//满足这个条件，j这种颜色处于禁忌当中
+	                    if(temp_delt < tabu_move.delt){
+	                        tabu_move.delt = temp_delt;
+	                        tabu_move.u = i;
 	                        tabu_move.vi = sol[i];
 	                        tabu_move.vj = j;
+	                        tabu_cnt =1 ;
+	                    }
+	                    else if(temp_delt == tabu_move.delt){
+	                    	tabu_cnt++;
+	                    	double t = 1.0/tabu_cnt,r= rand()/(RAND_MAX+1.0);
+	                    	if(r < t){//产生0-1的随机数，如果比t小 
+	                    		tabu_move.u = i;
+		                        tabu_move.vi = sol[i];
+		                        tabu_move.vj = j;
+							}
+	                    		
 						}
-                    		
-					}
-                    
-                }
-                else{
-                    if(temp_delt < non_tabu_move.delt){
-                        non_tabu_move.delt = temp_delt;
-                        non_tabu_move.u = i;
-                        non_tabu_move.vi = sol[i];
-                        non_tabu_move.vj = j;
-                        non_tabu_cnt=1;
-                    }
-                    else if(temp_delt == non_tabu_move.delt){
-                    	non_tabu_cnt++;
-                    	double t = 1.0/non_tabu_cnt;
-                    	if((rand()/(RAND_MAX+1.0)) < t){//产生0-1的随机数，如果比t小 
-                    		non_tabu_move.u = i;
+	                    
+	                }
+	                else{
+	                    if(temp_delt < non_tabu_move.delt){
+	                        non_tabu_move.delt = temp_delt;
+	                        non_tabu_move.u = i;
 	                        non_tabu_move.vi = sol[i];
 	                        non_tabu_move.vj = j;
+	                        non_tabu_cnt=1;
+	                    }
+	                    else if(temp_delt == non_tabu_move.delt){
+	                    	non_tabu_cnt++;
+	                    	double t = 1.0/non_tabu_cnt;
+	                    	if((rand()/(RAND_MAX+1.0)) < t){//产生0-1的随机数，如果比t小 
+	                    		non_tabu_move.u = i;
+		                        non_tabu_move.vi = sol[i];
+		                        non_tabu_move.vj = j;
+							}
+	                    		
 						}
-                    		
-					}
-                }
+	                }
+				}
+                
             }
         }
     }
     int temp1 = f+tabu_move.delt ,temp2 = f+non_tabu_move.delt;
     if(temp1<best_f && temp1<temp2){//比历史最优要好，且比非禁忌邻域中的结果要好
         f = best_f = temp1;
+        //cout <<"best_f=f="<<f<<endl;
         return tabu_move;
     }
     else{
+    	
         if(temp2<best_f)
             best_f = temp2;
         f = temp2;
+        //cout<<"delt="<<non_tabu_move.delt<<"\tbest_f = "<<best_f<<"  f ="<<f<<endl; 
         return non_tabu_move;
     }
 
@@ -204,7 +231,7 @@ Move FindMove(int k){
 void MakeMove(int u,int vi,int vj){
     sol[u] = vj;
     srand((unsigned)time(NULL));
-    tabu_table[u][vj] = f+iter+rand()%10;
+    tabu_table[u][vi] = f+iter+rand()%10;
     ArcNode *temp = adjList[u].first;
     while(temp){
         adj_color_table[temp->adjvex][vi]--;
