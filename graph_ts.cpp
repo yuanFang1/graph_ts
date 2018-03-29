@@ -85,7 +85,7 @@ int main(int argc,char *argv[])
  	memset(adj_color_table,0,sizeof(adj_color_table));
  	memset(tabu_table,0,sizeof(tabu_table));
  	f= best_f =0;
-	if(tabusearch(argv[2]) == 0)
+	if(tabusearch(atoi(argv[2])) == 0)
 		cout<<argv[2]<<"cannot match"<<endl;
 	else{
 		fp = fopen(".\\result.txt","a+");
