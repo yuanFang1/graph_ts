@@ -13,11 +13,21 @@ typedef struct Partion{
 
 }Partion;
 
+
+typedef struct P_sol{
+	int psol[MaxPoint][MaxPoint];
+	int num[MaxPoint];
+	int index1[MaxPoint],index2[MaxPoint];
+}P_sol;
+
 typedef struct Popu{
     int min_f,min_p;
     int fnum[P+1];
 }Popu;
 Popu popu;
+P_sol p_sol[P+1];
+int conflict[MaxPoint],conf_index[MaxPoint];
+int conf_num=0;
 typedef struct ArcNode{
 	int adjvex;
 	struct ArcNode *next;
@@ -28,38 +38,37 @@ typedef struct VerNode{
 }VerNode;
 
 typedef struct Move{
-    int u,vi,vj,delt;
+    int u,vi,vj;
 }Move;
-
 VerNode *adjList;
-int sol[P+1][MaxPoint];//用来保存p个种群
+int sol[P+1][MaxPoint];
 int adj_color_table[MaxPoint][MaxPoint],tabu_table[MaxPoint][MaxPoint];
-int point_num, edge_num,f,best_f,p;
-long long iter,MaxIter ;
-int res_iter;//用来保存使用最终结果颜色数经历的迭代数
-double res_time;// 保存时间
+int point_num, edge_num,f,best_f;
+long long iter;
+int res_iter;//脫脙脌麓卤拢麓忙脢鹿脫脙脳卯脰脮陆谩鹿没脩脮脡芦脢媒戮颅脌煤碌脛碌眉麓煤脢媒 
+double res_time;// 卤拢麓忙脢卤录盲 
 
-
-void insert_adjList(int i,int j);//插入邻接表
+void insert_adjList(int i,int j);//虏氓脠毛脕脷陆脫卤铆
 void dynamic_alloc();
 int tabusearch(int k);
 Move FindMove(int k);
-void MakeMove(int u,int vi,int vj);
-
+void MakeMove(int u,int vj);
+void add_conf(int adjvex); 
+void del_conf(int adjvex);
 /*
-argv[1]:文件名
-argv[2]:迭代最大步长
-argv[3]:颜色数k
+argv[1]:脦脛录镁脙没
+argv[2]:碌眉麓煤脳卯麓贸虏陆鲁陇
+argv[3]:脩脮脡芦脢媒k
 */
 int main(int argc,char *argv[])
 {
-	int i,j,k;
+	int i,j,k,p;
 	int right,left,middle,res = 10000;
 	char c,s1[100],s2[100],file[100];
 	FILE *fp;
 	sprintf(file,".\\instances\\%s",argv[1]);
 	MaxIter = strtol(argv[2]);
-	if ((fp=fopen(file,"r"))==NULL) {//从命令行中读取文件名参数
+	if ((fp=fopen(file,"r"))==NULL) {//麓脫脙眉脕卯脨脨脰脨露脕脠隆脦脛录镁脙没虏脦脢媒
 		cout << "file not open";
 		return 0;
 	}
@@ -69,7 +78,7 @@ int main(int argc,char *argv[])
 	sscanf(s1, "%c %s %d %d",&c,s2, &point_num, &edge_num);
 
 	dynamic_alloc();
-	memset(adjList,0,sizeof(VerNode)*(point_num+1));//将first指针全部初始化为NULL
+	memset(adjList,0,sizeof(VerNode)*(point_num+1));//陆芦first脰赂脮毛脠芦虏驴鲁玫脢录禄炉脦陋NULL
 	while(!feof(fp)){
 		fscanf(fp,"%c %d %d\n",&c,&i,&j);
 		insert_adjList(i,j);
@@ -77,15 +86,29 @@ int main(int argc,char *argv[])
 	}
 
     popu.min_f = 100000;
-	for(p=1;p<=P;p++){//获得初始的种群
+	for(p=1;p<=P;p++){//禄帽碌脙鲁玫脢录碌脛脰脰脠潞
 	 	memset(adj_color_table,0,sizeof(adj_color_table));
 	 	memset(tabu_table,0,sizeof(tabu_table));
 	 	f= best_f =0;
 		tabusearch(atoi(argv[3]));
 		popu.fnum[p] = f;
+		if(f == 0)
+			break;
 		if(f < popu.min_f){
             popu.min_f = f;
             popu.min_p = p;
+		}
+	}
+	memset(p_sol,0,sizeof(p_sol));
+	if(p > P){
+		for(p=1;p<=P;p++){//灏嗚В杞彉鎴愬垝鍒嗙殑褰㈠紡
+			for(i=1;i<=point_num;i++){
+				int color = p_sol[p].index1[i] = sol[p][i];
+				int color_num = p_sol[p].num[color];
+				p_sol[p].psol[color][color_num] = i;
+				p_sol[p].index2[i] = color_num++;
+				p_sol[p].num[color] =color_num;
+			}
 		}
 	}
 
@@ -95,7 +118,7 @@ int main(int argc,char *argv[])
 	fp = fopen(".\\result.txt","a+");
 	if(fp == NULL)
 		printf("output file open error\n");
-	fprintf(fp,"%s %-9d %-12d %lf\n",argv[1],k+1,res_iter,res_time);
+	fprintf(fp,"%s %-9d %-12d %lf\n",argv[1],argv[3],res_iter,res_time);
     return 0;
 }
 
@@ -105,26 +128,34 @@ void insert_adjList(int i,int j){
 	temp1->next = adjList[j].first;
 	adjList[j].first = temp1;
 }
-void dynamic_alloc(){//动态存储分配内存
+void dynamic_alloc(){//露炉脤卢麓忙麓垄路脰脜盲脛脷麓忙
 	int i;
 	adjList = (VerNode *)malloc(sizeof(VerNode)*(point_num+1));
+
 }
 int tabusearch(int k){
-	int i,j;
+	int i,j,is_conf;
 	srand((unsigned)time(NULL));
 	for(i=1;i<=point_num;i++){
 		sol[p][i] = rand()%k+1;
 		//cout << sol[i] <<' ';
 	}
 	//cout <<endl;
+
 	for(i=1;i<=point_num;i++){
 		ArcNode *temp =adjList[i].first;
-		while(temp){//遍历i节点相邻的节点，如果颜色相同的话则将冲突数加1，最后再除以二
+		is_conf =0;
+		while(temp){//卤茅脌煤i陆脷碌茫脧脿脕脷碌脛陆脷碌茫拢卢脠莽鹿没脩脮脡芦脧脿脥卢碌脛禄掳脭貌陆芦鲁氓脥禄脢媒录脫1拢卢脳卯潞贸脭脵鲁媒脪脭露镁
             if(sol[p][temp->adjvex] == sol[p][i]){
+            	is_conf =1;
                 f++;
             }
             adj_color_table[i][sol[p][temp->adjvex]]++;
             temp = temp->next;
+		}
+		if(is_conf){
+			conflict[conf_num] = i;
+			conf_index[i] = conf_num++;
 		}
 	}
 	f = f/2;
@@ -136,99 +167,130 @@ int tabusearch(int k){
 		if(f == 0)
             break;
         Move mymove = FindMove(k);
-        MakeMove(mymove.u,mymove.vi,mymove.vj);
+        MakeMove(mymove.u,mymove.vj);
         iter++;
 	}
 	clock_t ends = clock();
 	if(iter == MaxIter)
         return 0;
-
+    
     res_iter = iter;
-	res_time = (double)(ends - start)/ CLOCKS_PER_SEC;
+	res_time = (double)(ends - start)/ CLOCKS_PER_SEC; 
     return 1;
 }
 
 Move FindMove(int k){
-    int i,j,delt;
-    Move tabu_move,non_tabu_move;
-    float tabu_cnt,non_tabu_cnt;
-    tabu_move.delt = non_tabu_move.delt = 100000;//给它赋一个较大值，方便后面求最小值
+    int i,j,delt,conf_i;
+    int sol_i;//脫脙脌麓卤拢麓忙i陆谩碌茫碌脛脪禄脨漏脤脴脮梅拢卢脤谩脡媒脣脵露脠 
+    Move tabu_move[MaxPoint],non_tabu_move[MaxPoint];//虏脡脫脙鹿路脨脺锚镁脫帽脙脳碌脛路陆脢陆脫脡脫脷脙驴麓脦露录脪陋碌梅脫脙rand拢卢禄篓碌脛脢卤录盲禄谩卤脠陆脧露脿拢卢脣霉脪脭脫脙驴脮录盲脌麓禄禄脢卤录盲
+    int tabu_cnt=1,non_tabu_cnt=1;
+    int tabu_move_delt = 100000,non_tabu_move_delt = 100000;//赂酶脣眉赂鲁脪禄赂枚陆脧麓贸脰碌拢卢路陆卤茫潞贸脙忙脟贸脳卯脨隆脰碌
     srand((unsigned)time(NULL));
-    for(i=1;i<=point_num;i++){
-        if(adj_color_table[i][sol[p][i]]>0){
+    for(conf_i=0;conf_i< conf_num ;conf_i++){
+    	i = conflict[conf_i];
+    	sol_i = sol[p][i];
+        if(adj_color_table[i][sol_i]>0){
             for(j=1;j<=k;j++){
-            	if(j !=sol[p][i]){
-            		int temp_delt = adj_color_table[i][j] -adj_color_table[i][sol[p][i]];
+            	if(j != sol_i){
+            		int temp_delt = adj_color_table[i][j] -adj_color_table[i][sol_i];
 	                //cout <<temp_delt<<'\t';
-	                if(iter < tabu_table[i][j]){//满足这个条件，j这种颜色处于禁忌当中
-	                    if(temp_delt < tabu_move.delt){
-	                        tabu_move.delt = temp_delt;
-	                        tabu_move.u = i;
-	                        tabu_move.vi = sol[p][i];
-	                        tabu_move.vj = j;
-	                        tabu_cnt =1 ;
-	                    }
-	                    else if(temp_delt == tabu_move.delt){
-	                    	tabu_cnt++;
-	                    	double t = 1.0/tabu_cnt,r= rand()/(RAND_MAX+1.0);
-	                    	if(r < t){//产生0-1的随机数，如果比t小
-	                    		tabu_move.u = i;
-		                        tabu_move.vi = sol[p][i];
-		                        tabu_move.vj = j;
+	                if(iter >= tabu_table[i][j]){
+	                    if(temp_delt <= non_tabu_move_delt){
+	                    	if(temp_delt < non_tabu_move_delt){
+	                    		non_tabu_cnt =0;
+	                    		non_tabu_move_delt = temp_delt;
 							}
-
-						}
-
+	                        non_tabu_move[non_tabu_cnt].u = i;
+	                        non_tabu_move[non_tabu_cnt++].vj = j;
+	                    }
+//	                    else if(temp_delt == non_tabu_move.delt){
+//	                    	non_tabu_cnt++;
+//	                    	double t = 1.0/non_tabu_cnt;
+//	                    	if((rand()/(RAND_MAX+1.0)) < t){//虏煤脡煤0-1碌脛脣忙禄煤脢媒拢卢脠莽鹿没卤脠t脨隆 
+//	                    		non_tabu_move.u = i;
+//		                        non_tabu_move.vi = sol_i;
+//		                        non_tabu_move.vj = j;
+//							}
+//	                    		
+//						}
 	                }
-	                else{
-	                    if(temp_delt < non_tabu_move.delt){
-	                        non_tabu_move.delt = temp_delt;
-	                        non_tabu_move.u = i;
-	                        non_tabu_move.vi = sol[p][i];
-	                        non_tabu_move.vj = j;
-	                        non_tabu_cnt=1;
-	                    }
-	                    else if(temp_delt == non_tabu_move.delt){
-	                    	non_tabu_cnt++;
-	                    	double t = 1.0/non_tabu_cnt;
-	                    	if((rand()/(RAND_MAX+1.0)) < t){//产生0-1的随机数，如果比t小
-	                    		non_tabu_move.u = i;
-		                        non_tabu_move.vi = sol[p][i];
-		                        non_tabu_move.vj = j;
+	                else{//脗煤脳茫脮芒赂枚脤玫录镁拢卢j脮芒脰脰脩脮脡芦麓娄脫脷陆没录脡碌卤脰脨
+	                    if(temp_delt <= tabu_move_delt){
+	                    	if(temp_delt < tabu_move_delt){
+	                    		tabu_cnt =0;
+	                    		tabu_move_delt = temp_delt;
 							}
-
-						}
+	                        tabu_move[tabu_cnt].u = i;
+	                        tabu_move[tabu_cnt++].vj = j;
+	                    }
+//	                    else if(temp_delt == tabu_move.delt){
+//	                    	tabu_cnt++;
+//	                    	double t = 1.0/tabu_cnt,r= rand()/(RAND_MAX+1.0);
+//	                    	if(r < t){//虏煤脡煤0-1碌脛脣忙禄煤脢媒拢卢脠莽鹿没卤脠t脨隆 
+//	                    		tabu_move.u = i;
+//		                        tabu_move.vi = sol_i;
+//		                        tabu_move.vj = j;
+//							}
+//	                    		
+//						}
+	                    
 	                }
 				}
-
+                
             }
         }
     }
-    int temp1 = f+tabu_move.delt ,temp2 = f+non_tabu_move.delt;
-    if(temp1<best_f && temp1<temp2){//比历史最优要好，且比非禁忌邻域中的结果要好
+    int temp1 = f+tabu_move_delt ,temp2 = f+non_tabu_move_delt;
+    Move res;
+    if(temp1<best_f && temp1<temp2){//卤脠脌煤脢路脳卯脫脜脪陋潞脙拢卢脟脪卤脠路脟陆没录脡脕脷脫貌脰脨碌脛陆谩鹿没脪陋潞脙
         f = best_f = temp1;
-        //cout <<"best_f=f="<<f<<endl;
-        return tabu_move;
+        int index = rand()%tabu_cnt;
+        res = tabu_move[index];
     }
     else{
-
         if(temp2<best_f)
             best_f = temp2;
         f = temp2;
-        //cout<<"delt="<<non_tabu_move.delt<<"\tbest_f = "<<best_f<<"  f ="<<f<<endl;
-        return non_tabu_move;
+        int index = rand()%non_tabu_cnt;
+        res = non_tabu_move[index];
     }
+    return res;
 
 }
-
-void MakeMove(int u,int vi,int vj){
+void MakeMove(int u,int vj){
+	int vi = sol[p][u];
     sol[p][u] = vj;
     srand((unsigned)time(NULL));
-    tabu_table[u][vi] = f+iter+rand()%10;
+    tabu_table[u][vi] = f+iter+rand()%10+1;
     ArcNode *temp = adjList[u].first;
+    
     while(temp){
-        adj_color_table[temp->adjvex][vi]--;
-        adj_color_table[temp->adjvex][vj]++;
+    	int adjvex = temp->adjvex;
+        if((--adj_color_table[adjvex][vi] )==0){
+        	if(sol[p][adjvex] == vi){//脮芒赂枚碌茫碌脛脩脮脡芦脦陋vi拢卢碌芦脢脟vi露脭脫娄碌脛鲁冒脠脣脢媒卤盲鲁脡0脕脣拢卢脣霉脪脭虏禄脭脵脢脟鲁氓脥禄碌茫
+        		del_conf(adjvex);
+        	}
+        }
+        if((++adj_color_table[adjvex][vj]) == 1){
+        	if(sol[p][adjvex] == vj){//脮芒赂枚碌茫碌脛脩脮脡芦脦陋vj拢卢vj露脭脫娄碌脛鲁冒脠脣脢媒卤盲鲁脡脕脣1拢卢卤盲鲁脡脕脣鲁氓脥禄碌茫
+        		add_conf(adjvex); 
+        	}
+        }
         temp=temp->next;
     }
+    if(adj_color_table[u][vi]!=0 &&adj_color_table[u][vj]==0)
+    	del_conf(u);
+    if(adj_color_table[u][vi]==0 &&adj_color_table[u][vj]!=0)
+    	add_conf(u);
+}
+
+void add_conf(int adjvex){
+	conflict[conf_num] = adjvex;
+    conf_index[adjvex] = conf_num++;
+}
+
+void del_conf(int adjvex){
+	int temp_index = conf_index[adjvex];
+    conflict[temp_index] = conflict[--conf_num];
+    conf_index[conflict[temp_index]] =temp_index;
 }

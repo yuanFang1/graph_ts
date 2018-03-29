@@ -91,7 +91,7 @@ int main(int argc,char *argv[])
 		fp = fopen(".\\result.txt","a+");
 		if(fp == NULL)
 			printf("output file open error\n");
-		fprintf(fp,"%s %-9s %-12d %lf\n",argv[1],argv[2],res_iter,res_time);
+		fprintf(fp,"%s %-9s %-12d %lf  %lf\n",argv[1],argv[2],res_iter,res_time,res_iter/res_time);
 	    return 0;
 	}
 	
