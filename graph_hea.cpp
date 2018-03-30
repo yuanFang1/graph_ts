@@ -100,12 +100,13 @@ int main(int argc,char *argv[])
         }
 		tabusearch(sol[p]);
 		popu.fnum[p] = f;
-		if(f == 0)
-			break;
+
 		if(f < popu.min_f){
             popu.min_f = f;
             popu.min_p = p;
 		}
+		if(f == 0)
+			break;
 	}
 	memset(p_sol,0,sizeof(p_sol));
 	if(p > P){
@@ -118,8 +119,7 @@ int main(int argc,char *argv[])
                 p_sol[p].num[color] =color_num;
 			}
 		}
-		P_sol best_sol = p_sol[popu.min_p];
-		while(1){
+		while(popu.min_f!=0){
 			int p1 = rand()%P+1,p2;
 			do{
 				p2 = rand()%P+1;
@@ -130,21 +130,43 @@ int main(int argc,char *argv[])
             memset(tabu_table,0,sizeof(tabu_table));
             f= best_f =0;
 
-            tabusearch(temps.index1);
-            for(i=1;i<=point_num;i++){
-                int color = temps.index1[i];
+            tabusearch(temps.index1);//对temps进行禁忌搜索
 
+
+
+            for(i=1;i<=point_num;i++){//变成划分的形式
+                int color = temps.index1[i];
+                add_psol_color(color,i,&temps);
+            }
+            int max_f=-1,max_p;
+            for(i=1;i<=P;i++){
+                if(popu.fnum[i] >max_f){
+                    popu.fnum[i] = max_f;
+                    max_p = i;
+                }
+            }
+
+            p_sol[max_p] =temps;//将种群中冲突数最大的替换成temps
+            popu.fnum[max_p] = f;
+
+            if(f<popu.min_f){
+                popu.min_f = f;
+                popu.min_p = max_p;
             }
 		}
 	}
 
 
 
+    if(popu.min_f == 0){
+        fp = fopen(".\\result.txt","a+");
+        if(fp == NULL)
+            printf("output file open error\n");
+        fprintf(fp,"%s %-9d %-12d %lf\n",argv[1],argv[3],res_iter,res_time);
+    }
+    else
+        cout <<"overtime"<<endl;
 
-	fp = fopen(".\\result.txt","a+");
-	if(fp == NULL)
-		printf("output file open error\n");
-	fprintf(fp,"%s %-9d %-12d %lf\n",argv[1],argv[3],res_iter,res_time);
     return 0;
 }
 
