@@ -43,32 +43,35 @@ typedef struct Move{
 VerNode *adjList;
 int sol[P+1][MaxPoint];
 int adj_color_table[MaxPoint][MaxPoint],tabu_table[MaxPoint][MaxPoint];
-int point_num, edge_num,f,best_f;
+int point_num, edge_num,f,best_f,k;
 long long iter;
-int res_iter;//ÓÃÀ´±£´æÊ¹ÓÃ×îÖÕ½á¹ûÑÕÉ«Êý¾­ÀúµÄµü´úÊý 
-double res_time;// ±£´æÊ±¼ä 
+int res_iter;
+double res_time;
 
-void insert_adjList(int i,int j);//²åÈëÁÚ½Ó±í
+void insert_adjList(int i,int j);
 void dynamic_alloc();
-int tabusearch(int k);
-Move FindMove(int k);
-void MakeMove(int u,int vj);
-void add_conf(int adjvex); 
+int tabusearch(int *s);
+Move FindMove(int *s);
+void MakeMove(int u,int vj,int *s);
+void add_conf(int adjvex);
 void del_conf(int adjvex);
+void crossover(int p1,int p2);
+void add_psol_color(int color,int point ,P_sol *s);
 /*
-argv[1]:ÎÄ¼þÃû
-argv[2]:µü´ú×î´ó²½³¤
-argv[3]:ÑÕÉ«Êýk
+argv[1]:文件名
+argv[2]:迭代次数
+argv[3]:颜色数
 */
 int main(int argc,char *argv[])
 {
-	int i,j,k,p;
+	int i,j,p;
 	int right,left,middle,res = 10000;
 	char c,s1[100],s2[100],file[100];
 	FILE *fp;
+	srand((unsigned)time(NULL));
 	sprintf(file,".\\instances\\%s",argv[1]);
 	MaxIter = strtol(argv[2]);
-	if ((fp=fopen(file,"r"))==NULL) {//´ÓÃüÁîÐÐÖÐ¶ÁÈ¡ÎÄ¼þÃû²ÎÊý
+	if ((fp=fopen(file,"r"))==NULL) {
 		cout << "file not open";
 		return 0;
 	}
@@ -78,7 +81,7 @@ int main(int argc,char *argv[])
 	sscanf(s1, "%c %s %d %d",&c,s2, &point_num, &edge_num);
 
 	dynamic_alloc();
-	memset(adjList,0,sizeof(VerNode)*(point_num+1));//½«firstÖ¸ÕëÈ«²¿³õÊ¼»¯ÎªNULL
+	memset(adjList,0,sizeof(VerNode)*(point_num+1));
 	while(!feof(fp)){
 		fscanf(fp,"%c %d %d\n",&c,&i,&j);
 		insert_adjList(i,j);
@@ -86,11 +89,16 @@ int main(int argc,char *argv[])
 	}
 
     popu.min_f = 100000;
-	for(p=1;p<=P;p++){//»ñµÃ³õÊ¼µÄÖÖÈº
+    k = atoi(argv[3]);
+	for(p=1;p<=P;p++){
 	 	memset(adj_color_table,0,sizeof(adj_color_table));
 	 	memset(tabu_table,0,sizeof(tabu_table));
 	 	f= best_f =0;
-		tabusearch(atoi(argv[3]));
+        for(i=1;i<=point_num;i++){
+            sol[p][i] = rand()%k+1;
+            //cout << sol[i] <<' ';
+        }
+		tabusearch(sol[p]);
 		popu.fnum[p] = f;
 		if(f == 0)
 			break;
@@ -101,14 +109,22 @@ int main(int argc,char *argv[])
 	}
 	memset(p_sol,0,sizeof(p_sol));
 	if(p > P){
-		for(p=1;p<=P;p++){//将解转变成划分的形式
+		for(p=1;p<=P;p++){
 			for(i=1;i<=point_num;i++){
 				int color = p_sol[p].index1[i] = sol[p][i];
-				int color_num = p_sol[p].num[color];
-				p_sol[p].psol[color][color_num] = i;
-				p_sol[p].index2[i] = color_num++;
-				p_sol[p].num[color] =color_num;
+                int color_num = p_sol[p].num[color];
+                p_sol[p].psol[color][color_num] = i;
+                p_sol[p].index2[i] = color_num++;
+                p_sol[p].num[color] =color_num;
 			}
+		}
+		P_sol best_sol = p_sol[popu.min_p];
+		while(1){
+			int p1 = rand()%P+1,p2;
+			do{
+				p2 = rand()%P+1;
+			}while(p1 == p2);
+			crossover(p1,p2);
 		}
 	}
 
@@ -128,29 +144,24 @@ void insert_adjList(int i,int j){
 	temp1->next = adjList[j].first;
 	adjList[j].first = temp1;
 }
-void dynamic_alloc(){//¶¯Ì¬´æ´¢·ÖÅäÄÚ´æ
+void dynamic_alloc(){
 	int i;
 	adjList = (VerNode *)malloc(sizeof(VerNode)*(point_num+1));
 
 }
-int tabusearch(int k){
+int tabusearch(int *s){
 	int i,j,is_conf;
-	srand((unsigned)time(NULL));
-	for(i=1;i<=point_num;i++){
-		sol[p][i] = rand()%k+1;
-		//cout << sol[i] <<' ';
-	}
 	//cout <<endl;
 
 	for(i=1;i<=point_num;i++){
 		ArcNode *temp =adjList[i].first;
 		is_conf =0;
-		while(temp){//±éÀúi½ÚµãÏàÁÚµÄ½Úµã£¬Èç¹ûÑÕÉ«ÏàÍ¬µÄ»°Ôò½«³åÍ»Êý¼Ó1£¬×îºóÔÙ³ýÒÔ¶þ
-            if(sol[p][temp->adjvex] == sol[p][i]){
+		while(temp){
+            if(s[temp->adjvex] == s[i]){
             	is_conf =1;
                 f++;
             }
-            adj_color_table[i][sol[p][temp->adjvex]]++;
+            adj_color_table[i][s[temp->adjvex]]++;
             temp = temp->next;
 		}
 		if(is_conf){
@@ -166,29 +177,29 @@ int tabusearch(int k){
 	while(iter < MaxIter){
 		if(f == 0)
             break;
-        Move mymove = FindMove(k);
-        MakeMove(mymove.u,mymove.vj);
+        Move mymove = FindMove(s);
+        MakeMove(mymove.u,mymove.vj,s);
         iter++;
 	}
 	clock_t ends = clock();
 	if(iter == MaxIter)
         return 0;
-    
+
     res_iter = iter;
-	res_time = (double)(ends - start)/ CLOCKS_PER_SEC; 
+	res_time = (double)(ends - start)/ CLOCKS_PER_SEC;
     return 1;
 }
 
-Move FindMove(int k){
+Move FindMove(int *s){
     int i,j,delt,conf_i;
-    int sol_i;//ÓÃÀ´±£´æi½áµãµÄÒ»Ð©ÌØÕ÷£¬ÌáÉýËÙ¶È 
-    Move tabu_move[MaxPoint],non_tabu_move[MaxPoint];//²ÉÓÃ¹·ÐÜêþÓñÃ×µÄ·½Ê½ÓÉÓÚÃ¿´Î¶¼Òªµ÷ÓÃrand£¬»¨µÄÊ±¼ä»á±È½Ï¶à£¬ËùÒÔÓÃ¿Õ¼äÀ´»»Ê±¼ä
+    int sol_i;
+    Move tabu_move[MaxPoint],non_tabu_move[MaxPoint];
     int tabu_cnt=1,non_tabu_cnt=1;
-    int tabu_move_delt = 100000,non_tabu_move_delt = 100000;//¸øËü¸³Ò»¸ö½Ï´óÖµ£¬·½±ãºóÃæÇó×îÐ¡Öµ
+    int tabu_move_delt = 100000,non_tabu_move_delt = 100000;
     srand((unsigned)time(NULL));
     for(conf_i=0;conf_i< conf_num ;conf_i++){
     	i = conflict[conf_i];
-    	sol_i = sol[p][i];
+    	sol_i = s[i];
         if(adj_color_table[i][sol_i]>0){
             for(j=1;j<=k;j++){
             	if(j != sol_i){
@@ -206,15 +217,15 @@ Move FindMove(int k){
 //	                    else if(temp_delt == non_tabu_move.delt){
 //	                    	non_tabu_cnt++;
 //	                    	double t = 1.0/non_tabu_cnt;
-//	                    	if((rand()/(RAND_MAX+1.0)) < t){//²úÉú0-1µÄËæ»úÊý£¬Èç¹û±ÈtÐ¡ 
+//	                    	if((rand()/(RAND_MAX+1.0)) < t){
 //	                    		non_tabu_move.u = i;
 //		                        non_tabu_move.vi = sol_i;
 //		                        non_tabu_move.vj = j;
 //							}
-//	                    		
+//
 //						}
 	                }
-	                else{//Âú×ãÕâ¸öÌõ¼þ£¬jÕâÖÖÑÕÉ«´¦ÓÚ½û¼Éµ±ÖÐ
+	                else{
 	                    if(temp_delt <= tabu_move_delt){
 	                    	if(temp_delt < tabu_move_delt){
 	                    		tabu_cnt =0;
@@ -226,23 +237,23 @@ Move FindMove(int k){
 //	                    else if(temp_delt == tabu_move.delt){
 //	                    	tabu_cnt++;
 //	                    	double t = 1.0/tabu_cnt,r= rand()/(RAND_MAX+1.0);
-//	                    	if(r < t){//²úÉú0-1µÄËæ»úÊý£¬Èç¹û±ÈtÐ¡ 
+//	                    	if(r < t){
 //	                    		tabu_move.u = i;
 //		                        tabu_move.vi = sol_i;
 //		                        tabu_move.vj = j;
 //							}
-//	                    		
+//
 //						}
-	                    
+
 	                }
 				}
-                
+
             }
         }
     }
     int temp1 = f+tabu_move_delt ,temp2 = f+non_tabu_move_delt;
     Move res;
-    if(temp1<best_f && temp1<temp2){//±ÈÀúÊ·×îÓÅÒªºÃ£¬ÇÒ±È·Ç½û¼ÉÁÚÓòÖÐµÄ½á¹ûÒªºÃ
+    if(temp1<best_f && temp1<temp2){
         f = best_f = temp1;
         int index = rand()%tabu_cnt;
         res = tabu_move[index];
@@ -257,23 +268,23 @@ Move FindMove(int k){
     return res;
 
 }
-void MakeMove(int u,int vj){
-	int vi = sol[p][u];
-    sol[p][u] = vj;
+void MakeMove(int u,int vj,int *s){
+	int vi = s[u];
+    s[u] = vj;
     srand((unsigned)time(NULL));
     tabu_table[u][vi] = f+iter+rand()%10+1;
     ArcNode *temp = adjList[u].first;
-    
+
     while(temp){
     	int adjvex = temp->adjvex;
         if((--adj_color_table[adjvex][vi] )==0){
-        	if(sol[p][adjvex] == vi){//Õâ¸öµãµÄÑÕÉ«Îªvi£¬µ«ÊÇvi¶ÔÓ¦µÄ³ðÈËÊý±ä³É0ÁË£¬ËùÒÔ²»ÔÙÊÇ³åÍ»µã
+        	if(s[adjvex] == vi){
         		del_conf(adjvex);
         	}
         }
         if((++adj_color_table[adjvex][vj]) == 1){
-        	if(sol[p][adjvex] == vj){//Õâ¸öµãµÄÑÕÉ«Îªvj£¬vj¶ÔÓ¦µÄ³ðÈËÊý±ä³ÉÁË1£¬±ä³ÉÁË³åÍ»µã
-        		add_conf(adjvex); 
+        	if(s[adjvex] == vj){
+        		add_conf(adjvex);
         	}
         }
         temp=temp->next;
@@ -293,4 +304,61 @@ void del_conf(int adjvex){
 	int temp_index = conf_index[adjvex];
     conflict[temp_index] = conflict[--conf_num];
     conf_index[conflict[temp_index]] =temp_index;
+}
+
+void add_psol_color(int color,int point ,P_sol *s){
+    int color_num = s->num[color];
+    s->psol[color][color_num] = point;
+    s->index1[point] = color;
+    s->index2[point] = color_num;
+    s->num[color] = ++color_num;
+}
+void crossover(int p1,int p2){
+	int l,A,B,j;
+	P_sol temps,s[2];
+	s[0] = p_sol[p1];
+	s[1] = p_sol[p2];
+	srand((unsigned)time(NULL));
+	memset(&temps,0,sizeof(temps));
+	for(l=1;l<=k;l++){
+		if(l%2 !=0){
+            A=0;B=1;
+		}
+		else{
+            A=1;B=0;
+		}
+		int max_index ,max_num=-1,*h_num = s[A].num;
+		for(j=1;j<=k;j++){
+            if(h_num[j] >max_num){
+                max_index = j;
+                max_num = h_num[j];
+            }
+		}
+		int num = h_num[max_index];
+		int *h_color = s[A].psol[max_index];
+		for(j=0;j<num;j++){
+            int point = h_color[j];
+            temps.psol[l][j] = point;
+            temps.index1[point] = l;
+            temps.index2[point] = j;
+
+            int color = s[B].index1[point];//在B中删除这个点
+            int index2 = s[B].index2[point];
+            int t = s[B].psol[color][index2] = s[B].psol[color][--s[B].num[color]];
+            s[B].index2[t] = index2;
+		}
+		temps.num[l] = num;
+
+		//删除这些点
+        s[A].num[max_index] = 0;
+
+	}
+	for(l=1;l<=k;l++){
+        int num = s[0].num[l];
+        for(j=0;j<num;j++){
+            int point = s[0].psol[l][j];
+            int color = rand()%k+1;//随机分配到某一种颜色中去
+            add_psol_color(color,point,&temps);
+        }
+	}
 }
