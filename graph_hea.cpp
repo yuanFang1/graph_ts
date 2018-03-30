@@ -55,7 +55,7 @@ Move FindMove(int *s);
 void MakeMove(int u,int vj,int *s);
 void add_conf(int adjvex);
 void del_conf(int adjvex);
-void crossover(int p1,int p2);
+P_sol crossover(int p1,int p2);
 void add_psol_color(int color,int point ,P_sol *s);
 /*
 argv[1]:文件名
@@ -124,7 +124,17 @@ int main(int argc,char *argv[])
 			do{
 				p2 = rand()%P+1;
 			}while(p1 == p2);
-			crossover(p1,p2);
+			P_sol temps = crossover(p1,p2);
+
+			memset(adj_color_table,0,sizeof(adj_color_table));
+            memset(tabu_table,0,sizeof(tabu_table));
+            f= best_f =0;
+
+            tabusearch(temps.index1);
+            for(i=1;i<=point_num;i++){
+                int color = temps.index1[i];
+
+            }
 		}
 	}
 
@@ -313,7 +323,7 @@ void add_psol_color(int color,int point ,P_sol *s){
     s->index2[point] = color_num;
     s->num[color] = ++color_num;
 }
-void crossover(int p1,int p2){
+P_sol crossover(int p1,int p2){
 	int l,A,B,j;
 	P_sol temps,s[2];
 	s[0] = p_sol[p1];
@@ -338,16 +348,13 @@ void crossover(int p1,int p2){
 		int *h_color = s[A].psol[max_index];
 		for(j=0;j<num;j++){
             int point = h_color[j];
-            temps.psol[l][j] = point;
-            temps.index1[point] = l;
-            temps.index2[point] = j;
+            temps.index1[point] = l;//只需要保存哪个点分配了哪种颜色，因为马上要对它进行禁忌搜索，其它的保存了又会变
 
             int color = s[B].index1[point];//在B中删除这个点
             int index2 = s[B].index2[point];
             int t = s[B].psol[color][index2] = s[B].psol[color][--s[B].num[color]];
             s[B].index2[t] = index2;
 		}
-		temps.num[l] = num;
 
 		//删除这些点
         s[A].num[max_index] = 0;
@@ -358,7 +365,8 @@ void crossover(int p1,int p2){
         for(j=0;j<num;j++){
             int point = s[0].psol[l][j];
             int color = rand()%k+1;//随机分配到某一种颜色中去
-            add_psol_color(color,point,&temps);
+            temps.index1[point] = color;
         }
 	}
+	return temps;
 }
