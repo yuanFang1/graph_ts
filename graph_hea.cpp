@@ -6,17 +6,15 @@
 #include <string.h>
 #include <iostream>
 #include <fstream>
+#define MaxIter 10000 
 #define MaxPoint 1002
+#define MaxColor 300
 #define P 20
 using namespace std;
-typedef struct Partion{
-
-}Partion;
-
 
 typedef struct P_sol{
-	int psol[MaxPoint][MaxPoint];
-	int num[MaxPoint];
+	int psol[MaxColor][MaxPoint];
+	int num[MaxColor];
 	int index1[MaxPoint],index2[MaxPoint];
 }P_sol;
 
@@ -25,7 +23,7 @@ typedef struct Popu{
     int fnum[P+1];
 }Popu;
 Popu popu;
-P_sol p_sol[P+1];
+P_sol *p_sol;
 int conflict[MaxPoint],conf_index[MaxPoint];
 int conf_num=0;
 typedef struct ArcNode{
@@ -41,7 +39,7 @@ typedef struct Move{
     int u,vi,vj;
 }Move;
 VerNode *adjList;
-int sol[P+1][MaxPoint];
+int **sol;
 int adj_color_table[MaxPoint][MaxPoint],tabu_table[MaxPoint][MaxPoint];
 int point_num, edge_num,f,best_f,k;
 long long iter;
@@ -55,7 +53,7 @@ Move FindMove(int *s);
 void MakeMove(int u,int vj,int *s);
 void add_conf(int adjvex);
 void del_conf(int adjvex);
-P_sol crossover(int p1,int p2);
+void crossover(int p1,int p2,int *index1);
 void add_psol_color(int color,int point ,P_sol *s);
 /*
 argv[1]:文件名
@@ -70,7 +68,6 @@ int main(int argc,char *argv[])
 	FILE *fp;
 	srand((unsigned)time(NULL));
 	sprintf(file,".\\instances\\%s",argv[1]);
-	MaxIter = strtol(argv[2]);
 	if ((fp=fopen(file,"r"))==NULL) {
 		cout << "file not open";
 		return 0;
@@ -89,7 +86,7 @@ int main(int argc,char *argv[])
 	}
 
     popu.min_f = 100000;
-    k = atoi(argv[3]);
+    k = atoi(argv[2]); 
 	for(p=1;p<=P;p++){
 	 	memset(adj_color_table,0,sizeof(adj_color_table));
 	 	memset(tabu_table,0,sizeof(tabu_table));
@@ -119,12 +116,16 @@ int main(int argc,char *argv[])
                 p_sol[p].num[color] =color_num;
 			}
 		}
+		P_sol temps;
+		
 		while(popu.min_f!=0){
 			int p1 = rand()%P+1,p2;
 			do{
 				p2 = rand()%P+1;
 			}while(p1 == p2);
-			P_sol temps = crossover(p1,p2);
+			memset(&temps,0,sizeof(temps));
+		
+			crossover(p1,p2,temps.index1);
 
 			memset(adj_color_table,0,sizeof(adj_color_table));
             memset(tabu_table,0,sizeof(tabu_table));
@@ -141,7 +142,7 @@ int main(int argc,char *argv[])
             int max_f=-1,max_p;
             for(i=1;i<=P;i++){
                 if(popu.fnum[i] >max_f){
-                    popu.fnum[i] = max_f;
+                    max_f = popu.fnum[i] ;
                     max_p = i;
                 }
             }
@@ -153,6 +154,7 @@ int main(int argc,char *argv[])
                 popu.min_f = f;
                 popu.min_p = max_p;
             }
+            cout <<"mint_f = "<<popu.min_f<<endl; 
 		}
 	}
 
@@ -162,7 +164,7 @@ int main(int argc,char *argv[])
         fp = fopen(".\\result.txt","a+");
         if(fp == NULL)
             printf("output file open error\n");
-        fprintf(fp,"%s %-9d %-12d %lf\n",argv[1],argv[3],res_iter,res_time);
+        fprintf(fp,"%s %-9s %-12d %lf\n",argv[1],argv[2],res_iter,res_time);
     }
     else
         cout <<"overtime"<<endl;
@@ -179,7 +181,10 @@ void insert_adjList(int i,int j){
 void dynamic_alloc(){
 	int i;
 	adjList = (VerNode *)malloc(sizeof(VerNode)*(point_num+1));
-
+	p_sol = (P_sol *)malloc(sizeof(P_sol)*(P+1));
+	sol = (int **)malloc(sizeof(int *)*(P+1));
+	for(i=0;i<=P;i++)
+		sol[i] = (int *)malloc(sizeof(int)*(point_num+1));
 }
 int tabusearch(int *s){
 	int i,j,is_conf;
@@ -345,13 +350,12 @@ void add_psol_color(int color,int point ,P_sol *s){
     s->index2[point] = color_num;
     s->num[color] = ++color_num;
 }
-P_sol crossover(int p1,int p2){
+void crossover(int p1,int p2,int *index1){
 	int l,A,B,j;
-	P_sol temps,s[2];
+	P_sol s[2];
 	s[0] = p_sol[p1];
 	s[1] = p_sol[p2];
 	srand((unsigned)time(NULL));
-	memset(&temps,0,sizeof(temps));
 	for(l=1;l<=k;l++){
 		if(l%2 !=0){
             A=0;B=1;
@@ -370,7 +374,7 @@ P_sol crossover(int p1,int p2){
 		int *h_color = s[A].psol[max_index];
 		for(j=0;j<num;j++){
             int point = h_color[j];
-            temps.index1[point] = l;//只需要保存哪个点分配了哪种颜色，因为马上要对它进行禁忌搜索，其它的保存了又会变
+            index1[point] = l;//只需要保存哪个点分配了哪种颜色，因为马上要对它进行禁忌搜索，其它的保存了又会变
 
             int color = s[B].index1[point];//在B中删除这个点
             int index2 = s[B].index2[point];
@@ -387,8 +391,7 @@ P_sol crossover(int p1,int p2){
         for(j=0;j<num;j++){
             int point = s[0].psol[l][j];
             int color = rand()%k+1;//随机分配到某一种颜色中去
-            temps.index1[point] = color;
+            index1[point] = color;
         }
 	}
-	return temps;
 }
