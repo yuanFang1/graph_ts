@@ -1,0 +1,10 @@
+.\graph_ts.exe DSJC125.1.col 5
+.\graph_ts.exe DSJC250.1.col 8
+.\graph_ts.exe DSJC250.5.col 28
+.\graph_ts.exe DSJC250.9.col 72
+.\graph_ts.exe DSJC500.1.col 12
+.\graph_ts.exe DSJC500.5.col 50
+.\graph_ts.exe DSJC500.9.col 128
+.\graph_ts.exe DSJC1000.1.col 22
+.\graph_ts.exe DSJC1000.5.col 84
+.\graph_ts.exe DSJC1000.9.col 224

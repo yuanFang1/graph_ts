@@ -1,0 +1,20 @@
+﻿  stdafx.cpp
+  ts_vs.cpp
+c:\users\23527\desktop\优化\graph_ts\ts_vs\ts_vs\ts_vs.cpp(46): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.14393.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\23527\desktop\优化\graph_ts\ts_vs\ts_vs\ts_vs.cpp(47): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.14393.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
+c:\users\23527\desktop\优化\graph_ts\ts_vs\ts_vs\ts_vs.cpp(54): warning C4996: 'sscanf': This function or variable may be unsafe. Consider using sscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.14393.0\ucrt\stdio.h(2254): note: 参见“sscanf”的声明
+c:\users\23527\desktop\优化\graph_ts\ts_vs\ts_vs\ts_vs.cpp(59): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.14393.0\ucrt\stdio.h(1192): note: 参见“fscanf”的声明
+c:\users\23527\desktop\优化\graph_ts\ts_vs\ts_vs\ts_vs.cpp(74): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.14393.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
+c:\users\23527\desktop\优化\graph_ts\ts_vs\ts_vs\ts_vs.cpp(42): warning C4101: “k”: 未引用的局部变量
+c:\users\23527\desktop\优化\graph_ts\ts_vs\ts_vs\ts_vs.cpp(90): warning C4101: “i”: 未引用的局部变量
+c:\users\23527\desktop\优化\graph_ts\ts_vs\ts_vs\ts_vs.cpp(134): warning C4244: “=”: 从“__int64”转换到“int”，可能丢失数据
+c:\users\23527\desktop\优化\graph_ts\ts_vs\ts_vs\ts_vs.cpp(95): warning C4101: “j”: 未引用的局部变量
+c:\users\23527\desktop\优化\graph_ts\ts_vs\ts_vs\ts_vs.cpp(140): warning C4101: “delt”: 未引用的局部变量
+c:\users\23527\desktop\优化\graph_ts\ts_vs\ts_vs\ts_vs.cpp(220): warning C4244: “=”: 从“__int64”转换到“int”，可能丢失数据
+  ts_vs.vcxproj -> C:\Users\23527\Desktop\优化\graph_ts\ts_vs\Debug\ts_vs.exe
+  ts_vs.vcxproj -> C:\Users\23527\Desktop\优化\graph_ts\ts_vs\Debug\ts_vs.pdb (Partial PDB)

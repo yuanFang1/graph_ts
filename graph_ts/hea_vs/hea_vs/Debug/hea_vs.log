@@ -1,0 +1,5 @@
+﻿  hea_vs.cpp
+c:\users\23527\desktop\优化\graph_ts\hea_vs\hea_vs\hea_vs.cpp(224): warning C4244: “=”: 从“__int64”转换到“int”，可能丢失数据
+c:\users\23527\desktop\优化\graph_ts\hea_vs\hea_vs\hea_vs.cpp(309): warning C4244: “=”: 从“__int64”转换到“int”，可能丢失数据
+  hea_vs.vcxproj -> C:\Users\23527\Desktop\优化\graph_ts\hea_vs\Debug\hea_vs.exe
+  hea_vs.vcxproj -> C:\Users\23527\Desktop\优化\graph_ts\hea_vs\Debug\hea_vs.pdb (Partial PDB)
